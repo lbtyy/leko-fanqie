@@ -1,0 +1,41 @@
+Leko Reader 0.15.49 安装说明（新手版）
+
+你需要先在 Kindle 上安装 KOReader，也就是常说的“Kindle 第三方阅读器”。Leko 不能单独运行。
+
+1. 先完全退出 KOReader；不要在 KOReader 正在运行时覆盖插件文件。
+2. 在电脑上解压 ZIP，得到一个名为 leko.koplugin 的文件夹。不要把 ZIP 文件直接复制到 Kindle，也不要逐个 Lua 文件覆盖。
+3. 用数据线连接 Kindle。
+4. 打开 Kindle 磁盘中的 koreader 文件夹，再打开 plugins 文件夹。
+5. 先把旧的 leko.koplugin 整个文件夹移出 plugins（可先改名为 leko.koplugin.bak），再复制新的完整文件夹。
+6. 最终应能看到：koreader/plugins/leko.koplugin/main.lua，以及 koreader/plugins/leko.koplugin/Leko/App.lua。
+7. 安全弹出 Kindle，确认 KOReader 已完全退出后，再重新打开 KOReader；不需要重启整个 Kindle。
+8. 在 KOReader 文件管理器顶栏查找 Leko 书架；若没有图标，请在右上角菜单的“更多工具”或“插件”中打开 Leko Reader。
+
+正确结果以 koreader/plugins/leko.koplugin/main.lua 为准。如果解压后出现两层同名文件夹，复制实际包含 main.lua 的那一层。
+
+如果电脑解压后看不到 Leko/App.lua，说明解压不完整，请重新解压 ZIP；不要把一个不完整的目录复制到 Kindle。
+
+升级时：
+
+- 先完全退出 KOReader。
+- 备份旧 leko.koplugin，把它移出 plugins，再复制新版。
+- plugins 中只保留一个 leko.koplugin。
+- 普通升级不会删除 Leko 书架、书源、阅读位置和优先级设置。
+
+如果升级后顶栏入口暂时没有出现，通常是 KOReader 仍在内存中保留旧 Lua 模块。完全退出并重新打开 KOReader 即可；不要把新旧文件混在同一个目录中，也不需要重启 Kindle。
+
+第一次打开：
+
+打开 Leko 书架，轻点《欢迎来到 Leko》。这本九章说明书完全保存在 Kindle 本地，不需要网络书源。
+
+公开版不附带网络书源。需要联网搜书时，推荐用手机导入：
+
+1. 让 Kindle 和手机连接同一个 Wi-Fi。
+2. 打开“书源 → 用手机导入”。
+3. 用手机扫描 Kindle 上的二维码。
+4. 在手机上粘贴网址或 JSON，或选择本地 `.json` 文件。
+5. Kindle 会显示导入进度；完成后可在同一手机页面继续发送，不必重新扫码。
+
+“从文件导入”和“通过网址导入”仍然保留，作为备用方式。
+
+完整使用说明见压缩包中的 README.md。

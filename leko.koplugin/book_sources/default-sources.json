@@ -1,0 +1,32 @@
+[
+  {
+    "bookSourceName": "Leko 内置说明",
+    "bookSourceGroup": "Leko 内置",
+    "bookSourceUrl": "leko://fixture",
+    "enabled": false,
+    "enabledCookieJar": false,
+    "searchUrl": "leko://fixture/search.json?key={{key}}&page={{page}}",
+    "ruleSearch": {
+      "bookList": "$.results[*]",
+      "name": "$.title",
+      "author": "$.author",
+      "bookUrl": "$.book_url",
+      "intro": "$.intro"
+    },
+    "ruleBookInfo": {
+      "init": "$",
+      "name": "$.title",
+      "author": "$.author",
+      "intro": "$.intro",
+      "tocUrl": "$.toc_url"
+    },
+    "ruleToc": {
+      "chapterList": "$.chapters[*]",
+      "chapterName": "$.title",
+      "chapterUrl": "$.url"
+    },
+    "ruleContent": {
+      "content": "#content@html"
+    }
+  }
+]

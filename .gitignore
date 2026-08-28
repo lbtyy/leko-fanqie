@@ -1,0 +1,71 @@
+# Public release repository allowlist.
+# Everything is ignored unless it is explicitly admitted below.
+/*
+
+# Repository metadata and public documentation.
+!/.gitattributes
+!/.gitignore
+!/CHANGELOG.md
+!/LICENSE
+!/README.md
+!/UPGRADE.md
+!/UserGuide.md
+!/smoke_check.py
+
+# Production KOReader plugin. Admit only its known file layout.
+!/leko.koplugin/
+/leko.koplugin/*
+!/leko.koplugin/main.lua
+!/leko.koplugin/_meta.lua
+!/leko.koplugin/INSTALL.txt
+!/leko.koplugin/LICENSE
+!/leko.koplugin/NOTICE.md
+!/leko.koplugin/config.example.lua
+
+!/leko.koplugin/Leko/
+/leko.koplugin/Leko/*
+!/leko.koplugin/Leko/*.lua
+!/leko.koplugin/Leko/providers/
+!/leko.koplugin/Leko/providers/*.lua
+!/leko.koplugin/Leko/Fanqie/
+!/leko.koplugin/Leko/Fanqie/*.lua
+!/leko.koplugin/Leko/gbk-unicode.bin
+!/leko.koplugin/Leko/native/
+/leko.koplugin/Leko/native/*
+!/leko.koplugin/Leko/native/ABI.md
+!/leko.koplugin/Leko/native/QUICKJS-LICENSE.txt
+!/leko.koplugin/Leko/native/liblekoqjs.so
+
+!/leko.koplugin/resources/
+/leko.koplugin/resources/*
+!/leko.koplugin/resources/icons/
+/leko.koplugin/resources/icons/*
+!/leko.koplugin/resources/icons/leko.bookshelf.svg
+
+!/leko.koplugin/book_sources/
+/leko.koplugin/book_sources/*
+!/leko.koplugin/book_sources/default-sources.json
+
+# Reproducible native bridge sources and license.
+!/native/
+/native/*
+!/native/QUICKJS-LICENSE.txt
+!/native/bridge/
+/native/bridge/*
+!/native/bridge/build-host.ps1
+!/native/bridge/build-kindle-armv7.sh
+!/native/bridge/build-kobo-armv7.sh
+!/native/bridge/build-linux-x86_64.sh
+!/native/bridge/build-windows-x86_64.sh
+!/native/bridge/lqjs_bridge.c
+!/native/bridge/lqjs_bridge.h
+!/native/bridge/qjs_version.h
+!/native/bridge/test_lqjs_bridge.c
+!/native/bridge/verify-kindle-abi.sh
+!/native/bridge/verify-multiplatform-abi.sh
+
+# Release and generated-table build scripts.
+!/scripts/
+/scripts/*
+!/scripts/generate_charset_tables.py
+!/scripts/package.ps1
