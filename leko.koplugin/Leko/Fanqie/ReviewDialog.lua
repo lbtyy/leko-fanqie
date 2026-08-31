@@ -29,21 +29,28 @@ local TEXT = {
     close = "关闭",
 }
 
-local FrameContainer = require("ui/widget/framecontainer")
+-- [seam] leko-plus 修复：下列 5 个模块路径在 KOReader 中并不存在，
+-- 会导致本模块 require 抛错、段评弹窗永远打不开。修正为真实路径：
+--   ui/widget/framecontainer  → ui/widget/container/framecontainer
+--   ui/widget/leftcontainer   → ui/widget/container/leftcontainer
+--   ui/widget/rightcontainer  → ui/widget/container/rightcontainer
+--   ui/widget/geometry        → ui/geometry
+--   ui/blitbuffer             → ffi/blitbuffer
+local FrameContainer = require("ui/widget/container/framecontainer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local TextWidget = require("ui/widget/textwidget")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local OverlapGroup = require("ui/widget/overlapgroup")
-local LeftContainer = require("ui/widget/leftcontainer")
-local RightContainer = require("ui/widget/rightcontainer")
+local LeftContainer = require("ui/widget/container/leftcontainer")
+local RightContainer = require("ui/widget/container/rightcontainer")
 local HorizontalSpan = require("ui/widget/horizontalspan")
 local VerticalSpan = require("ui/widget/verticalspan")
 local Button = require("ui/widget/button")
 local Font = require("ui/font")
-local Geom = require("ui/widget/geometry")
-local Blitbuffer = require("ui/blitbuffer")
+local Geom = require("ui/geometry")
+local Blitbuffer = require("ffi/blitbuffer")
 
 local ReviewDialog = {}
 
