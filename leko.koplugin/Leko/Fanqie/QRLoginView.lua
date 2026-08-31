@@ -31,6 +31,8 @@ local TEXT = {
     waiting = "正在获取二维码……",
     cancel = "取消",
     retry = "重新获取",
+    placeholder_pending = "二维码生成中……",
+    placeholder_failed = "二维码未能生成",
 }
 
 local QRLoginView = InputContainer:extend{
@@ -44,6 +46,7 @@ function QRLoginView:init()
     self._closing = false
     self.status = TEXT.waiting
     self.qr = nil
+    self.qr_error = nil
     self:_build()
     -- 启动登录流程（网络全部经 AsyncProviderTask 子进程）
     FanqieAuth:startQrLogin(self)
@@ -87,10 +90,17 @@ function QRLoginView:_build()
         }
         center = CenterContainer:new{ dimen = Geom:new{ w = width, h = qr_widget.dimen.h }, qr_widget }
     else
+        -- [seam] leko-plus 修复：失败态不能再显示"二维码生成中……"。
+        -- 扫码失败时本视图会停在占位文案上，用户看到的是"二维码界面不显示二维码"，
+        -- 而真正的原因（如二维码内容超出编码器容量）只写在底部状态行，容易被忽略。
+        local placeholder = TEXT.placeholder_pending
+        if self.qr_error then
+            placeholder = TEXT.placeholder_failed .. "\n" .. tostring(self.qr_error)
+        end
         center = CenterContainer:new{
             dimen = Geom:new{ w = width, h = math.floor(height * 0.40) },
             TextBoxWidget:new{
-                text = "二维码生成中……",
+                text = placeholder,
                 width = text_width,
                 face = Font:getFace("smallinfofont", 19),
                 alignment = "center",
@@ -123,6 +133,7 @@ end
 function QRLoginView:_restart()
     if self._closing then return end
     self.qr = nil
+    self.qr_error = nil
     self.status = TEXT.waiting
     self:_build()
     FanqieAuth:startQrLogin(self)
@@ -134,12 +145,18 @@ end
 
 function QRLoginView:showQr(qr_url)
     if self._closing then return end
-    local qr, qr_err = QRCode:encode(tostring(qr_url or ""))
+    local text = tostring(qr_url or "")
+    if text == "" then
+        self:showRetry("无法生成二维码：\n服务端未返回二维码地址")
+        return
+    end
+    local qr, qr_err = QRCode:encode(text)
     if not qr then
         self:showRetry("无法生成二维码：\n" .. tostring(qr_err or "地址无效"))
         return
     end
     self.qr = qr
+    self.qr_error = nil
     self.status = "等待手机扫码……"
     self:_build()
 end
@@ -153,8 +170,10 @@ end
 function QRLoginView:showRetry(message)
     if self._closing then return end
     FanqieAuth:cancelQrLogin()
-    self:_setStatus(tostring(message or "登录失败"))
-    self.status = tostring(message or "登录失败")
+    self.qr = nil
+    self.qr_error = tostring(message or "登录失败")
+    self:_setStatus(self.qr_error)
+    self.status = self.qr_error
     self:_build()
 end
 

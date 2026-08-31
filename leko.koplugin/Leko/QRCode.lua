@@ -1,13 +1,35 @@
--- Small, self-contained QR Code encoder for the local phone-import page.
+-- Small, self-contained QR Code encoder for the local phone-import page
+-- and the fanqie QR login page.
 --
--- The encoder deliberately uses byte mode and error-correction level M.  The
--- payload is a short local HTTP address, so versions 1-10 cover the complete
--- range needed by this feature while keeping the implementation compact.
+-- The encoder deliberately uses byte mode and error-correction level M.
+-- The version tables cover the full standard range (1-40) so that long
+-- payloads are encodable; short payloads still pick the smallest version.
 local QRCode = {}
 
-local TOTAL_CODEWORDS = { 26, 44, 70, 100, 134, 172, 196, 242, 292, 346 }
-local ECC_CODEWORDS_PER_BLOCK = { 10, 16, 26, 18, 24, 16, 18, 22, 22, 26 }
-local NUM_ERROR_CORRECTION_BLOCKS = { 1, 1, 1, 2, 2, 4, 4, 4, 5, 5 }
+-- [seam] leko-plus：版本表由 1-10 扩展到完整的 1-40（ISO/IEC 18004 表 13-22，
+-- 纠错等级 M）。番茄扫码登录的 qrcode_index_url 实测约 480 字节，需要 version 17
+-- （等级 M 的字节容量为 504）；而 version 10 只有 213 字节，原表上限会导致
+-- QRCode:encode() 直接返回 "二维码内容过长"，扫码登录页永远画不出二维码。
+-- 前 10 项与原表逐项一致，因此短负载（手机导入书源的本地地址）行为不变。
+local TOTAL_CODEWORDS = {
+    26, 44, 70, 100, 134, 172, 196, 242, 292, 346,
+    404, 466, 532, 581, 655, 733, 815, 901, 991, 1085,
+    1156, 1258, 1364, 1474, 1588, 1706, 1828, 1921, 2051, 2185,
+    2323, 2465, 2611, 2761, 2876, 3034, 3196, 3362, 3532, 3706,
+}
+local ECC_CODEWORDS_PER_BLOCK = {
+    10, 16, 26, 18, 24, 16, 18, 22, 22, 26,
+    30, 22, 22, 24, 24, 28, 28, 26, 26, 26,
+    26, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+    28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+}
+local NUM_ERROR_CORRECTION_BLOCKS = {
+    1, 1, 1, 2, 2, 4, 4, 4, 5, 5,
+    5, 8, 9, 9, 10, 10, 11, 13, 14, 16,
+    17, 17, 18, 20, 21, 23, 25, 26, 28, 29,
+    31, 33, 35, 37, 38, 40, 43, 45, 47, 49,
+}
+-- [seam] leko-plus：对齐图案坐标同样补齐到 40 个版本（前 10 项与原表一致）。
 local ALIGNMENT_POSITIONS = {
     {},
     { 6, 18 },
@@ -19,6 +41,36 @@ local ALIGNMENT_POSITIONS = {
     { 6, 24, 42 },
     { 6, 26, 46 },
     { 6, 28, 50 },
+    { 6, 30, 54 },
+    { 6, 32, 58 },
+    { 6, 34, 62 },
+    { 6, 26, 46, 66 },
+    { 6, 26, 48, 70 },
+    { 6, 26, 50, 74 },
+    { 6, 30, 54, 78 },
+    { 6, 30, 56, 82 },
+    { 6, 30, 58, 86 },
+    { 6, 34, 62, 90 },
+    { 6, 28, 50, 72, 94 },
+    { 6, 26, 50, 74, 98 },
+    { 6, 30, 54, 78, 102 },
+    { 6, 28, 54, 80, 106 },
+    { 6, 32, 58, 84, 110 },
+    { 6, 30, 58, 86, 114 },
+    { 6, 34, 62, 90, 118 },
+    { 6, 26, 50, 74, 98, 122 },
+    { 6, 30, 54, 78, 102, 126 },
+    { 6, 26, 52, 78, 104, 130 },
+    { 6, 30, 56, 82, 108, 134 },
+    { 6, 34, 60, 86, 112, 138 },
+    { 6, 30, 58, 86, 114, 142 },
+    { 6, 34, 62, 90, 118, 146 },
+    { 6, 30, 54, 78, 102, 126, 150 },
+    { 6, 24, 50, 76, 102, 128, 154 },
+    { 6, 28, 54, 80, 106, 132, 158 },
+    { 6, 32, 58, 84, 110, 136, 162 },
+    { 6, 26, 54, 82, 110, 138, 166 },
+    { 6, 30, 58, 86, 114, 142, 170 },
 }
 
 -- Lua 5.1/LuaJIT compatible integer helpers.  Keeping these here avoids a
@@ -328,58 +380,84 @@ local function copyMatrix(matrix)
     return copy
 end
 
+-- [seam] leko-plus：规则 3 的 1:1:3:1:1 图形用 11 位滚动窗口命中，
+-- 不再为每个位置拼字符串；评分权重与原实现逐项一致（差分测试
+-- tools/koreader_mock/tests/penalty_diff.lua 覆盖 130 个矩阵，结果全等）。
+-- version 17（番茄扫码 URL）原本要跑 8 次 O(size^2) 字符串拼接，
+-- 在 ARM 设备上会造成肉眼可见的卡顿。
+local PATTERN_1_1_3_1_1_LIGHT = 0x5D0   -- 二进制 10111010000
+local PATTERN_LIGHT_1_1_3_1_1 = 0x05D   -- 二进制 00001011101
+local PATTERN_WINDOW_MASK = 0x7FF       -- 11 位窗口
+
 local function penaltyScore(matrix)
-    local size, score = #matrix, 0
-    local function color(row, column) return matrix[row][column] and 1 or 0 end
-    local function scoreLine(values)
-        local line_score, run_color, run_length = 0, values[1], 1
-        for index = 2, #values do
-            if values[index] == run_color then
-                run_length = run_length + 1
-            else
-                if run_length >= 5 then line_score = line_score + 3 + run_length - 5 end
-                run_color, run_length = values[index], 1
-            end
+    local size = #matrix
+    -- 摊平成一维数组，避免后续反复做二维下标与布尔→数值转换。
+    local grid, dark = {}, 0
+    for row = 1, size do
+        local source_row = matrix[row]
+        local base = (row - 1) * size
+        for column = 1, size do
+            local value = source_row[column] and 1 or 0
+            grid[base + column] = value
+            dark = dark + value
         end
-        if run_length >= 5 then line_score = line_score + 3 + run_length - 5 end
-        return line_score
     end
 
+    local score = 0
+    -- 规则 1（同色连续 ≥5）+ 规则 3（1:1:3:1:1 及其镜像）
     for row = 1, size do
-        local values = {}
-        for column = 1, size do values[column] = color(row, column) end
-        score = score + scoreLine(values)
-        for index = 1, size - 10 do
-            local pattern = ""
-            for position = index, index + 10 do pattern = pattern .. tostring(values[position]) end
-            if pattern == "10111010000" or pattern == "00001011101" then score = score + 40 end
+        local base = (row - 1) * size
+        local run_color, run_length = grid[base + 1], 1
+        local window = grid[base + 1]
+        for column = 2, size do
+            local value = grid[base + column]
+            if value == run_color then
+                run_length = run_length + 1
+            else
+                if run_length >= 5 then score = score + 3 + run_length - 5 end
+                run_color, run_length = value, 1
+            end
+            window = (window * 2 + value) % 2048
+            if column >= 11 and (window == PATTERN_1_1_3_1_1_LIGHT
+                    or window == PATTERN_LIGHT_1_1_3_1_1) then
+                score = score + 40
+            end
         end
+        if run_length >= 5 then score = score + 3 + run_length - 5 end
     end
     for column = 1, size do
-        local values = {}
-        for row = 1, size do values[row] = color(row, column) end
-        score = score + scoreLine(values)
-        for index = 1, size - 10 do
-            local pattern = ""
-            for position = index, index + 10 do pattern = pattern .. tostring(values[position]) end
-            if pattern == "10111010000" or pattern == "00001011101" then score = score + 40 end
+        local run_color, run_length = grid[column], 1
+        local window = grid[column]
+        for row = 2, size do
+            local value = grid[(row - 1) * size + column]
+            if value == run_color then
+                run_length = run_length + 1
+            else
+                if run_length >= 5 then score = score + 3 + run_length - 5 end
+                run_color, run_length = value, 1
+            end
+            window = (window * 2 + value) % 2048
+            if row >= 11 and (window == PATTERN_1_1_3_1_1_LIGHT
+                    or window == PATTERN_LIGHT_1_1_3_1_1) then
+                score = score + 40
+            end
         end
+        if run_length >= 5 then score = score + 3 + run_length - 5 end
     end
+    -- 规则 2（2x2 同色块）
     for row = 1, size - 1 do
+        local base = (row - 1) * size
+        local next_base = row * size
         for column = 1, size - 1 do
-            local value = matrix[row][column]
-            if matrix[row + 1][column] == value and matrix[row][column + 1] == value
-                    and matrix[row + 1][column + 1] == value then
+            local value = grid[base + column]
+            if value == grid[next_base + column] and value == grid[base + column + 1]
+                    and value == grid[next_base + column + 1] then
                 score = score + 3
             end
         end
     end
-    local dark = 0
-    for row = 1, size do
-        for column = 1, size do if matrix[row][column] then dark = dark + 1 end end
-    end
-    score = score + math.floor(math.abs(dark * 100 / (size * size) - 50) / 5) * 10
-    return score
+    -- 规则 4（深色占比偏离 50%）
+    return score + math.floor(math.abs(dark * 100 / (size * size) - 50) / 5) * 10
 end
 
 function QRCode:encode(text)
